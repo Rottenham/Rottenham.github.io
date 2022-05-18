@@ -1,0 +1,260 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: "Arial";
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 30px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #author {
+            text-align: center;
+            font-size: 14px;
+            color: gray;
+        }
+
+        #upload {
+            text-align-last: center;
+            margin-top: 25px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #paint {
+            text-align: center;
+            margin-top: 30px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #myCanvas {
+            border: 3px solid grey;
+            width: 533px;
+            height: 400px;
+        }
+
+        #predicted {
+            text-align: center;
+            margin-top: 30px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #output {
+            text-align: center;
+            font-size: 18px;
+            resize: none;
+            overflow: hidden;
+            min-height: 120px;
+            width: 120px;
+        }
+
+        #copy {
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.5.2/dist/tf.min.js"></script>
+    <h1>IZE Image Recognition (β)</h1>
+    <div id="author">
+        <p>by <a href="https://space.bilibili.com/8252252">Crescendo</a>, 2022/05/18</p>
+    </div>
+    <div id="upload">
+        <input type="file" accept="image/*" id="file" onchange="loadFile(event)">
+        <p>You can paste the image (Ctrl+V) too.</p>
+    </div>
+    <div id="paint">
+        <canvas id="myCanvas"></canvas>
+    </div>
+    <div id="predicted">
+        <p>Recognition Result</p>
+        <textarea id="output" onchange="autoGrow(this)" readonly></textarea>
+    </div>
+    <div id="copy">
+        <button onclick="copyToClipboard()">Copy</button>
+    </div>
+    <script>
+        var canvas = document.getElementById('myCanvas'),
+            context = canvas.getContext('2d');
+        var x_off = 40;
+        var y_off = 70;
+        canvas.width = 800;
+        canvas.height = 600;
+
+        function auto_grow(element) {
+            element.style.height = "5px";
+            element.style.height = (element.scrollHeight) + "px";
+        }
+
+        function copyToClipboard() {
+            var text = $.trim($("#output").val());
+            navigator.clipboard.writeText(text);
+        }
+
+        // Upload file handler
+        var loadFile = function (event) {
+            var base_image = new Image();
+            base_image.src = URL.createObjectURL(event.target.files[0]);
+            base_image.onload = function () {
+                drawImageToCanvas(context, base_image);
+                process(context);
+            }
+        };
+
+        // Draw original image to canvas
+        var drawImageToCanvas = function (context, image) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            var scale = image.width / 800.0
+            var scaled_height = Math.trunc(image.height / scale);
+            if (scaled_height <= 600) {
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            } else {
+                var cutoff_height = image.height - scale * 600;
+                context.drawImage(image, 0, cutoff_height, image.width, image.height - cutoff_height, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Draw additional lines to canvas
+        var drawLinesToCanvas = function (ctx) {
+            ctx.strokeStyle = '#ff0000';
+            ctx.strokeRect(x_off, y_off, 400, 500);
+            ctx.beginPath();
+            for (var i = 1; i <= 4; i++) {
+                ctx.moveTo(x_off, y_off + i * 100);
+                ctx.lineTo(x_off + 5 * 80, y_off + i * 100);
+                ctx.moveTo(x_off + i * 80, y_off);
+                ctx.lineTo(x_off + i * 80, y_off + 5 * 100);
+            }
+            ctx.stroke();
+        }
+
+        // Process image data and draw additional lines to canvas
+        var process = function (context) {
+            var data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            //console.log(data.length);
+            var rgbArray = []
+            for (var i = 0; i < 5; i++) {
+                for (var j = 0; j < 5; j++) {
+                    var tempArray = []
+                    var curr = (y_off * 800 + i * 100 * 800 + x_off + j * 80) * 4;
+                    // console.log(curr);
+                    for (var k = 0; k < 100; k++) {
+                        for (var l = curr; l < curr + 80 * 4; l += 4) {
+                            tempArray.push([data[l], data[l + 1], data[l + 2]]);
+                        }
+                        curr += 800 * 4;
+                    }
+                    //console.log(tempArray.length);
+                    rgbArray.push(tempArray)
+                }
+            }
+            //console.log(rgbArray.length);
+            predict(rgbArray);
+            drawLinesToCanvas(context);
+        }
+
+        const codes = [" ", "1", "h", "o", "t", "b", "z", "2", "p", "d", "x", "w", "3", "_", "j", "l", "5", "c", "y", "s"];
+        // formalize result
+        var formalize = function (result) {
+            var str = "";
+            for (var i = 0; i < 5; i++) {
+                for (var j = 0; j < 5; j++) {
+                    str += codes[result[i * 5 + j]];
+                }
+                str += "\n";
+            }
+            return str;
+        }
+
+        tf.loadLayersModel('model/model.json').then(function (model) {
+            window.model = model;
+        });
+        const plants = ["Empty", "Peashooter", "Sunflower", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Fume-shroom", "Scaredy-shroom", "Squash", "Threepeater", "Spikeweed", "Torchwood", "Split Pea", "Starfruit", "Magnet-shroom", "Kernel-pult", "Umbrella Leaf"];
+
+        var predict = function (input) {
+            if (window.model) {
+                var output = []
+                input.forEach(element => {
+                    window.model.predict([tf.tensor(element).reshape([1, 100, 80, 3])]).array().then(function (scores) {
+                        var scrs = scores[0]
+                        var predicted = scrs.indexOf(Math.max(...scrs));
+                        output.push(predicted);
+                        //console.log(plants[predicted]);
+                    });
+                });
+                var timeout = setInterval(function () {
+                    if (output.length == 25) {
+                        clearInterval(timeout);
+                        $('#output').val(formalize(output));
+                    }
+                }, 100);
+            } else {
+                // The model takes a bit to load, if we are too fast, wait
+                setTimeout(function () { predict(input) }, 50);
+            }
+        }
+
+        // Clipboard Function
+        var CLIPBOARD = new CLIPBOARD_CLASS();
+
+        /**
+         * image pasting into canvas
+         */
+        function CLIPBOARD_CLASS() {
+            var _self = this;
+
+            //handlers
+            document.addEventListener('paste', function (e) { _self.paste_auto(e); }, false);
+
+            //on paste
+            this.paste_auto = function (e) {
+                if (e.clipboardData) {
+                    var items = e.clipboardData.items;
+                    if (!items) return;
+
+                    //access data directly
+                    var is_image = false;
+                    for (var i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf("image") !== -1) {
+                            //image
+                            var blob = items[i].getAsFile();
+                            var URLObj = window.URL || window.webkitURL;
+                            var source = URLObj.createObjectURL(blob);
+                            this.paste_createImage(source);
+                            is_image = true;
+                        }
+                    }
+                    if (is_image == true) {
+                        e.preventDefault();
+                    }
+                }
+            };
+            //draw pasted image to canvas
+            this.paste_createImage = function (source) {
+                var pastedImage = new Image();
+                pastedImage.src = source;
+                pastedImage.onload = function () {
+                    drawImageToCanvas(context, pastedImage);
+                    process(context);
+                };
+            };
+        }
+
+    </script>
+
+
+
+</body>
+
+</html>
