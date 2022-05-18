@@ -14,7 +14,7 @@
             margin-right: auto;
         }
 
-        #author {
+        .author {
             text-align: center;
             font-size: 14px;
             color: gray;
@@ -67,7 +67,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.5.2/dist/tf.min.js"></script>
     <h1>IZE Image Recognition (β)</h1>
-    <div id="author">
+    <div class="author">
         <p>by <a href="https://space.bilibili.com/8252252">Crescendo</a>, 2022/05/18</p>
     </div>
     <div id="upload">
@@ -83,6 +83,9 @@
     </div>
     <div id="copy">
         <button onclick="copyToClipboard()">Copy</button>
+    </div>
+    <div class="author" style="margin-top: 35px;">
+        <p>Hosted on GitHub Pages <a href="https://github.com/Rottenham/Rottenham.github.io">(GitHub repo)</a></p>
     </div>
     <script>
         var canvas = document.getElementById('myCanvas'),
