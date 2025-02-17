@@ -13,7 +13,7 @@
         <div style="display: flex; gap: 0.5rem; width: 100%; height: 100%; margin: 1rem 0; height: 2.5rem;">
             <div class="number-input">
                 <label for="numEffects"># effects:</label>
-                <input type="number" id="numEffects" min="1" value="2">
+                <input type="number" id="numEffects" min="1" value="2" onchange="validateInput(this)">
             </div>
             <button onclick="showAllEffects()" class="secondary" style="flex: 1;">All Effects</button>
             <button onclick="reset()" class="secondary" style="flex: 1;">Reset</button>

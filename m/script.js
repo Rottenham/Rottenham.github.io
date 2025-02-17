@@ -153,3 +153,7 @@ window.addEventListener("beforeunload", function (e) {
     e.preventDefault();
     return 'Are you sure you want to quit?';
 });
+
+function validateInput(input) {
+    input.value = Math.min(effects.length, Math.max(1, parseInt(input.value) || 1));
+}
