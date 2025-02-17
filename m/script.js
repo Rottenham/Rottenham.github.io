@@ -113,6 +113,7 @@ function showAllEffects() {
                     </li>
                 `).join('') +
         '</ul>';
+    document.getElementById('modalTitle').innerText = 'All Effects (' + effects.length + ')';
     document.getElementById('modal').style.display = 'block';
 }
 
