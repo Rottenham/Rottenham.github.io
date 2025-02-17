@@ -75,11 +75,13 @@ function selectEffects() {
     updateUrl();
 }
 
-function clearEffects() {
-    selectedEffects = [];
-    excludedEffects = [];
-    updateDisplay();
-    updateUrl();
+function reset() {
+    if (confirm("Are you sure you want to reset?")) {
+        selectedEffects = [];
+        excludedEffects = [];
+        updateDisplay();
+        updateUrl();
+    }
 }
 
 function updateDisplay() {
@@ -146,3 +148,8 @@ function decodeIds(code) {
     }
     return ids;
 }
+
+window.addEventListener("beforeunload", function (e) {
+    e.preventDefault();
+    return 'Are you sure you want to quit?';
+});
