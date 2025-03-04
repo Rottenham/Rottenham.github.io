@@ -16,7 +16,7 @@
                 <input type="number" id="numEffects" min="1" value="2" onchange="validateInput(this)">
             </div>
             <button onclick="showAllEffects()" class="secondary" style="flex: 1;">All Effects</button>
-            <button onclick="reset()" class="secondary" style="flex: 1;">Reset</button>
+            <button id="toggleName" class="secondary" onclick="toggleNameDisplay()" style="flex: 1;">SGS Name</button>
         </div>
 
         <div id="cards" class="cards"></div>
@@ -31,7 +31,8 @@
             <h2 id="modalTitle">All Effects</h2>
             <div id="effectsList"></div>
             <div id="modalButton">
-                <button onclick="closeModal()" class="secondary" style="margin-top: 1rem">Close</button>
+                <button onclick="closeModal()" class="secondary"
+                    style="margin-top: 1rem; padding: 0.5rem 1rem;">Close</button>
             </div>
         </div>
     </div>

@@ -1,6 +1,7 @@
 let effects = [];
 let selectedEffects = [];
 let excludedEffects = [];
+let displayMode = 0;
 
 // Load effects from JSON file
 fetch('effects.json')
@@ -31,6 +32,14 @@ function loadStateFromUrl() {
         document.getElementById('numEffects').value = num;
     }
 
+    // Load display mode
+    const mode = params.get('v');
+    if (mode) {
+        displayMode = 1;
+    } else {
+        displayMode = 0;
+    }
+
     updateDisplay();
 }
 
@@ -43,6 +52,7 @@ function updateUrl() {
         params.set('e', encodeIds(excludedEffects));
     }
     params.set('n', document.getElementById('numEffects').value);
+    params.set('v', displayMode);
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({}, '', newUrl);
@@ -53,23 +63,42 @@ function selectEffects() {
 
     // Move current selected effects to excluded
     excludedEffects = [...excludedEffects, ...selectedEffects];
-    console.log(excludedEffects)
+    console.log({ excludedEffects });
 
     // Get available effects (not excluded)
-    const availableEffects = effects.filter((_, index) =>
+    let availableEffects = effects.filter((_, index) =>
         !excludedEffects.includes(index));
+    availableEffects = availableEffects.filter(elem =>
+        availableEffects.every(other =>
+            other === elem || !("exclude" in other) || !other["exclude"].includes(elem["name"])
+        ));
+    console.log({ availableEffects });
 
-    if (availableEffects.length < numEffects) {
-        alert('Not enough effects available. Clearing excluded effects.');
+    let shuffled = [...availableEffects].sort(() => 0.5 - Math.random());
+    console.log({ shuffled });
+
+    let select_shuffled_all = -1;
+    for (let i = 0; i < Math.min(shuffled.length, numEffects); i++) {
+        if ("exclude_all" in shuffled[i]) {
+            select_shuffled_all = i;
+            break;
+        }
+    }
+    if (select_shuffled_all >= 0)
+        shuffled = [shuffled[select_shuffled_all]];
+    else
+        shuffled = shuffled.filter(elem => !("exclude_all" in elem));
+    console.log({ shuffled });
+
+    if (select_shuffled_all < 0 && shuffled.length < numEffects) {
+        alert("You've gone through all the effects. Confirm to start a new round.");
         excludedEffects = [];
+        selectedEffects = [];
         return selectEffects();
     }
 
     // Randomly select new effects
-    const shuffled = [...availableEffects].sort(() => 0.5 - Math.random());
-    console.log(shuffled);
     selectedEffects = shuffled.slice(0, numEffects).map((e1 => effects.findIndex(e2 => e1.name === e2.name)));
-    console.log(selectedEffects);
 
     updateDisplay();
     updateUrl();
@@ -84,6 +113,19 @@ function reset() {
     }
 }
 
+function toggleNameDisplay() {
+    displayMode = displayMode === 0 ? 1 : 0;
+    updateUrl();
+    updateDisplay();
+}
+
+function getEffectName(effect) {
+    if (displayMode === 1)
+        return effect["sgs_name"];
+    else
+        return effect["name"];
+}
+
 function updateDisplay() {
     const cardsDiv = document.getElementById('cards');
     cardsDiv.innerHTML = '';
@@ -95,13 +137,16 @@ function updateDisplay() {
             card.className = 'card';
             card.innerHTML = `
                         <div class="card-title">
-                            <h3>${effect.name}</h3>
+                            <h3>${getEffectName(effect)}</h3>
                         </div>
                         <p>${effect.effect}</p>
                     `;
             cardsDiv.appendChild(card);
         }
     });
+
+    const toggleNameButton = document.getElementById('toggleName');
+    toggleNameButton.innerText = displayMode == 1 ? 'Normal Name' : 'SGS Name';
 }
 
 function showAllEffects() {
@@ -109,7 +154,7 @@ function showAllEffects() {
     effectsList.innerHTML = '<ul>' +
         effects.map(effect => `
                     <li>
-                        <strong>${effect.name}</strong>: ${effect.effect}
+                        <strong>${getEffectName(effect)}</strong>: ${effect.effect}
                     </li>
                 `).join('') +
         '</ul>';
@@ -144,16 +189,18 @@ function decodeIds(code) {
         if (code & 1) {
             ids.push(id);
         }
-        bits >>= 1;
+        code >>= 1;
         id++;
     }
     return ids;
 }
 
-window.addEventListener("beforeunload", function (e) {
-    e.preventDefault();
-    return 'Are you sure you want to quit?';
-});
+if (!window.location.href.includes("127.0.0.1") && !window.location.href.includes("localhost")) {
+    window.addEventListener("beforeunload", function (e) {
+        e.preventDefault();
+        return 'Are you sure you want to quit?';
+    });
+}
 
 function validateInput(input) {
     input.value = Math.min(effects.length, Math.max(1, parseInt(input.value) || 1));
